@@ -4,13 +4,10 @@ import os
 from huggingface_hub import InferenceClient
 
 st.set_page_config(page_title="Hugging Face Chatbot", page_icon="🤖")
-
 st.title("Hugging Face Chatbot")
 
 # --- Get Hugging Face API key ---
-# Try Streamlit secrets first, then environment variable
 hf_token = st.secrets.get("HUGGINGFACE_API_KEY", os.getenv("HUGGINGFACE_API_KEY"))
-
 if not hf_token:
     st.error(
         "Hugging Face API key not found!\n"
@@ -32,12 +29,13 @@ if st.button("Send") and user_input:
     st.session_state.messages.append(f"You: {user_input}")
     with st.spinner("Generating response..."):
         try:
-            response = client.text_generation(
-                "tiiuae/falcon-7b-instruct",  # replace with any HF hosted model
+            # Use invoke() instead of text_generation() for latest huggingface_hub
+            response = client.invoke(
+                "tiiuae/falcon-7b-instruct",  # HF hosted model
                 inputs=user_input,
-                max_new_tokens=200
+                parameters={"max_new_tokens": 200}
             )
-            bot_reply = response[0]["generated_text"]
+            bot_reply = response.generated_text
         except Exception as e:
             bot_reply = f"Error generating response: {e}"
 
