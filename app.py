@@ -33,9 +33,9 @@ if st.button("Send") and user_input:
     with st.spinner("Generating response..."):
         try:
             response = client.text_generation(
-                model="tiiuae/falcon-7b-instruct",  # replace with any HF hosted model
+                "tiiuae/falcon-7b-instruct",  # replace with any HF hosted model
                 inputs=user_input,
-                parameters={"max_new_tokens": 200}
+                max_new_tokens=200
             )
             bot_reply = response[0]["generated_text"]
         except Exception as e:
