@@ -3,7 +3,7 @@ import os
 import requests
 import time
 
-st.title("HF Chatbot")
+st.title("Chatbot")
 
 api_key = st.secrets.get("HUGGINGFACE_API_KEY", os.getenv("HUGGINGFACE_API_KEY"))
 if not api_key:
