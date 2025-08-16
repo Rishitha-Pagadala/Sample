@@ -10,30 +10,17 @@ EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 GENERATION_MODEL = "gpt2"  # lightweight default; replace with an instruction-tuned model if desired
 
 class HyDERetriever:
-    def __init__(self, hf_token: str, docs: List[str], embed_model: str = EMBEDDING_MODEL, gen_model: str = GENERATION_MODEL):
-        self.hf_token = hf_token
+    def __init__(self, hf_token, docs):
+        self.embed_api = InferenceApi(repo_id="sentence-transformers/all-MiniLM-L6-v2", token=hf_token)
         self.docs = docs
-        self.embed_model = embed_model
-        self.gen_model = gen_model
-
-        # create inference APIs
-        self.embed_api = InferenceApi(repo_id=self.embed_model, token=self.hf_token)
-        self.gen_api = InferenceApi(repo_id=self.gen_model, token=self.hf_token)
-
-        # build index
         self.doc_embeddings = self._embed_texts(self.docs)
-        self.index, self.id_to_doc = self._build_faiss(self.doc_embeddings, self.docs)
 
-    def _embed_texts(self, texts: List[str]) -> np.ndarray:
-        embs = []
+    def _embed_texts(self, texts):
+        embeddings = []
         for t in texts:
             out = self.embed_api(inputs=t, params={"wait_for_model": True})
-            # embeddings from HF inference may come as list of floats
-            if isinstance(out, dict) and "error" in out:
-                raise RuntimeError(f"Embedding API error: {out}")
-            vector = np.array(out, dtype=np.float32)
-            embs.append(vector)
-        return np.vstack(embs)
+            embeddings.append(out["embedding"])
+        return embeddings
 
     def _build_faiss(self, embeddings: np.ndarray, docs: List[str]):
         dim = embeddings.shape[1]
