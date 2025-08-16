@@ -5,7 +5,7 @@ import os
 
 st.set_page_config(page_title="HyDE + RAG demo", layout="centered")
 
-st.title("HyDE + RAG demo (Hugging Face + Streamlit Secrets)")
+st.title("HyDE + RAG demo")
 
 # get HF token from Streamlit secrets
 try:
