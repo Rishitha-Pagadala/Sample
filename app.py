@@ -1,52 +1,62 @@
+# app.py
 import streamlit as st
+from rag import HyDERetriever
 import os
-import requests
-import time
 
-from huggingface_hub import login
+st.set_page_config(page_title="HyDE + RAG demo", layout="centered")
 
-token = st.secrets["HUGGINGFACE_TOKEN"]  
-login(token)
+st.title("HyDE + RAG demo (Hugging Face + Streamlit Secrets)")
 
-
-st.title("Chatbot")
-
-api_key = st.secrets.get("HUGGINGFACE_API_KEY", os.getenv("HUGGINGFACE_API_KEY"))
-if not api_key:
-    st.error("Hugging Face API key missing!")
+# get HF token from Streamlit secrets
+try:
+    HF_TOKEN = st.secrets["HUGGINGFACE_TOKEN"]
+except Exception:
+    st.error("HUGGINGFACE_TOKEN not found in Streamlit secrets. Add it in your app settings.")
     st.stop()
 
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+# load docs from docs/ directory
+@st.cache_resource
+def load_docs():
+    docs_dir = "docs"
+    docs = []
+    if not os.path.exists(docs_dir):
+        return docs
+    for fn in os.listdir(docs_dir):
+        if fn.endswith(".txt"):
+            with open(os.path.join(docs_dir, fn), "r", encoding="utf-8") as f:
+                docs.append(f.read())
+    return docs
 
-user_input = st.text_input("You: ")
+docs = load_docs()
+if not docs:
+    st.warning("No docs found in docs/. Add some .txt files to the docs/ folder in the repo.")
+    st.stop()
 
-if st.button("Send") and user_input:
-    st.session_state.messages.append(f"You: {user_input}")
-    with st.spinner("Generating response..."):
-        url = "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct"
-        headers = {"Authorization": f"Bearer {api_key}"}
-        payload = {"inputs": user_input, "parameters": {"max_new_tokens": 200}}
-        
-        bot_reply = ""
-        try:
-            response = requests.post(url, headers=headers, json=payload)
-            # Check if response is JSON
-            if response.headers.get("content-type") == "application/json":
-                result = response.json()
-                if isinstance(result, dict) and "error" in result:
-                    bot_reply = f"Error from API: {result['error']}"
-                elif isinstance(result, list) and "generated_text" in result[0]:
-                    bot_reply = result[0]["generated_text"]
-                else:
-                    bot_reply = f"Unexpected API response: {result}"
-            else:
-                bot_reply = f"Non-JSON response: {response.text}"
-        except Exception as e:
-            bot_reply = f"Exception: {e}"
+# Build retriever once (cached)
+@st.cache_resource
+def make_retriever(token, docs):
+    return HyDERetriever(hf_token=token, docs=docs)
 
-        st.session_state.messages.append(f"Bot: {bot_reply}")
+retriever = make_retriever(HF_TOKEN, docs)
 
-# Display chat
-for msg in st.session_state.messages:
-    st.write(msg)
+query = st.text_input("Ask a question about the docs", "")
+
+if st.button("Search"):
+    if not query.strip():
+        st.warning("Please type a question.")
+    else:
+        with st.spinner("Running HyDE + retrieval..."):
+            results, hyde = retriever.retrieve(query, top_k=3)
+            st.subheader("HyDE (hypothetical answer)")
+            st.write(hyde)
+
+            st.subheader("Retrieved documents (score = similarity)")
+            retrieved_texts = []
+            for doc, score in results:
+                st.write(f"**score**: {score:.4f}")
+                st.code(doc[:1000] + ("..." if len(doc) > 1000 else ""))
+                retrieved_texts.append(doc)
+
+            st.subheader("Final answer (synthesized)")
+            final = retriever.final_answer(query, retrieved_texts)
+            st.write(final)
