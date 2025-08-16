@@ -17,19 +17,19 @@ except Exception:
 # load docs from docs/ directory
 @st.cache_resource
 def load_docs():
-    docs_dir = "docs"
+    docs_path = os.path.join(os.path.dirname(__file__), "docs")
     docs = []
-    if not os.path.exists(docs_dir):
+    if not os.path.exists(docs_path):
         return docs
-    for fn in os.listdir(docs_dir):
+    for fn in os.listdir(docs_path):
         if fn.endswith(".txt"):
-            with open(os.path.join(docs_dir, fn), "r", encoding="utf-8") as f:
+            with open(os.path.join(docs_path, fn), "r", encoding="utf-8") as f:
                 docs.append(f.read())
     return docs
 
 docs = load_docs()
 if not docs:
-    st.warning("No docs found in docs/. Add some .txt files to the docs/ folder in the repo.")
+    st.error("No docs found in docs/. Add some .txt files to the docs/ folder in the repo.")
     st.stop()
 
 # Build retriever once (cached)
