@@ -11,7 +11,7 @@ GENERATION_MODEL = "gpt2"  # lightweight default; replace with an instruction-tu
 
 class HyDERetriever:
     def __init__(self, hf_token, docs):
-        self.client = InferenceClient("sentence-transformers/all-MiniLM-L6-v2", token=hf_token)
+        self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
         self.docs = docs
         self.doc_embeddings = self._embed_texts(self.docs)
 
