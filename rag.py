@@ -11,15 +11,15 @@ GENERATION_MODEL = "gpt2"  # lightweight default; replace with an instruction-tu
 
 class HyDERetriever:
     def __init__(self, hf_token, docs):
-        self.embed_api = InferenceApi(repo_id="sentence-transformers/all-MiniLM-L6-v2", token=hf_token)
+        self.client = InferenceClient("sentence-transformers/all-MiniLM-L6-v2", token=hf_token)
         self.docs = docs
         self.doc_embeddings = self._embed_texts(self.docs)
 
     def _embed_texts(self, texts):
         embeddings = []
         for t in texts:
-            out = self.embed_api(inputs=t, params={"wait_for_model": True})
-            embeddings.append(out["embedding"])
+            out = self.client.feature_extraction(t)  # <-- New method
+            embeddings.append(out)
         return embeddings
 
     def _build_faiss(self, embeddings: np.ndarray, docs: List[str]):
