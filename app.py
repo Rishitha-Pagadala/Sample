@@ -3,6 +3,12 @@ import os
 import requests
 import time
 
+from huggingface_hub import login
+
+token = st.secrets["HUGGINGFACE_TOKEN"]  
+login(token)
+
+
 st.title("Chatbot")
 
 api_key = st.secrets.get("HUGGINGFACE_API_KEY", os.getenv("HUGGINGFACE_API_KEY"))
